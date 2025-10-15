@@ -23,6 +23,8 @@ public class PlankProblemSlim {
         return lo; // == hi
     }
 
+    
+
     // Convenience “process” for your example input
     static long process() {
         long[] L = { 10, 14, 15, 11 };
@@ -31,6 +33,7 @@ public class PlankProblemSlim {
     }
 
     public static void main(String[] args) {
+      
         System.out.println(process()); // -> 7
     }
 }
