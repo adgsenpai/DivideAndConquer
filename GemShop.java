@@ -1,36 +1,54 @@
 public class GemShop {
-    // Exact sum: S(K) = sum_{j=1}^{K-1} j * floor(K/j)
-    // Time: Θ(K)
-    static long fLinear(long K) {
+
+    // Triangular sum: 1 + 2 + ... + x
+    static long sumTo(long x) {
+        // compute x*(x+1)/2 in 128-bit order to minimize overflow risk
+        // (assuming K, N are within typical contest ranges this is fine)
+        return (x & 1L) == 0 ? (x / 2) * (x + 1) : x * ((x + 1) / 2);
+    }
+
+    // Sum over a..b inclusive
+    static long sumRange(long a, long b) {
+        if (a > b) return 0L;
+        return sumTo(b) - sumTo(a - 1);
+    }
+
+    // O(sqrt K) using quotient grouping:
+    // S(K) = sum_{j=1}^{K-1} j * floor(K/j)
+    static long fFast(long K) {
         if (K <= 1) return 0L;
-        long ans = 0;
-        for (long j = 1; j < K; j++) {
-            ans += j * (K / j);
+        long ans = 0L;
+        long j = 1L;
+        long jMax = K - 1;
+
+        while (j <= jMax) {
+            long q = K / j;                 // current quotient
+            long r = Math.min(jMax, K / q); // last j with same quotient
+            // sum_{t=j}^{r} t = arithmetic series
+            long blockSum = sumRange(j, r);
+            ans += q * blockSum;
+            j = r + 1;
         }
         return ans;
     }
 
-    // Find max k such that fLinear(k) <= N
-    // Binary search over k in [0, N]; each check costs Θ(k)
+    // Find max k such that fFast(k) <= N
+    // Monotone in k; binary search with O(sqrt k) check
     static long maxK(long N) {
-        long low = 0, high = N;
-        while (low < high) {
-            long mid = (low + high + 1) / 2; // upper mid
-            if (fLinear(mid) <= N) {
-                low = mid;          // mid is feasible
-            } else {
-                high = mid - 1;     // mid too large
-            }
+        long lo = 0, hi = Math.max(1L, N); // safe upper bound; you can also exponential-search
+        while (lo < hi) {
+            long mid = (lo + hi + 1) >>> 1;
+            if (fFast(mid) <= N) lo = mid;
+            else hi = mid - 1;
         }
-        return low; // == high
+        return lo;
     }
 
-    // Brute force: increment k until it breaks the budget N
-    // Time: potentially large; only for small N/testing
+    // (Optional) sanity-only brute for very small N
     static long maxKBrute(long N) {
         long k = 0;
         while (true) {
-            long next = fLinear(k + 1);
+            long next = fFast(k + 1);
             if (next <= N) k++;
             else break;
         }
@@ -50,22 +68,15 @@ public class GemShop {
         long N = 1_000_000_000L;
 
         long t1 = timeNanos(() -> {
-            long val = fLinear(K);
-            System.out.println("fLinear(" + K + ") = " + val);
+            long val = fFast(K);
+            System.out.println("fFast(" + K + ") = " + val);
         });
-        System.out.printf("time fLinear(K=%d): %.3f ms%n", K, ms(t1));
+        System.out.printf("time fFast(K=%d): %.3f ms%n", K, ms(t1));
 
         long t2 = timeNanos(() -> {
             long k = maxK(N);
             System.out.println("maxK(N=" + N + ") = " + k);
         });
         System.out.printf("time maxK(N=%d): %.3f ms%n", N, ms(t2));
-
-        long smallN = 100_000L; // keep small for brute
-        long t3 = timeNanos(() -> {
-            long kb = maxKBrute(smallN);
-            System.out.println("maxKBrute(N=" + smallN + ") = " + kb);
-        });
-        System.out.printf("time maxKBrute(N=%d): %.3f ms%n", smallN, ms(t3));
     }
 }
